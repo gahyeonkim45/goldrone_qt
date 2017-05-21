@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Map</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script>
+
+var locinfo = null;
+//전역 변수
+var map;
+var myLatlng;
+var data;
+var addPoint;
+
+var id = null;
+var check = 0;
+var info;
+
+document.addEventListener("DOMContentLoaded", function () {
+
+       new QWebChannel(qt.webChannelTransport, function (channel) {
+            locinfo = channel.objects.locInfo;
+            locinfo.SayHello("HtmlClient");
+            locinfo.GetDroneid.connect(function(Droneid){
+                id = Droneid;
+                loadingFunction();
+            });
+       });
+
+});
+
+function loadingFunction(){
+
+    if(id == null){
+     // 대기 상태
+
+
+    }else{
+        var xmlhttp = new XMLHttpRequest();
+        var url = "http://192.169.1.13:3000/posts/drone/qt/" + id;
+
+      //  alert(url);
+
+        xmlhttp.onreadystatechange = function() {
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+            var myArr = JSON.parse(xmlhttp.responseText);
+            data = myArr;
+            //alert(JSON.stringify(data));
+            initMap();
+        }
+        };
+
+        xmlhttp.open("GET", url, true);
+        xmlhttp.send();
+    }
+
+}
+
+function initMap() {
+
+    var myOptions = {
+        center: new google.maps.LatLng(data[0]['lat'], data[0]['lon']),
+        //center: new google.maps.LatLng(data.lat, data.lon),
+        zoom: 14,
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        panControl: true,   // 위치 이동 가능여부 설정
+        zoomControl: true,  // 줌 설정 가능여부 설정
+        streetViewControl: false // 스트리트뷰 사용 가능여부 설정
+    };
+
+    map = new google.maps.Map(document.getElementById("map"),myOptions);
+
+
+    if(data.length == 1){
+
+        var markers = [['drone',data[0]['lat'], data[0]['lon']]];
+
+    }else if(data.length == 2){
+
+        var markers = [['drone',data[0]['lat'], data[0]['lon']],['gps',data[1]['lat'], data[1]['lon']]];
+
+    }
+
+    setMarkers(markers, map);
+
+    setInterval(callback, 3000);
+
+}
+
+function callback(){
+
+    var xmlhttp = new XMLHttpRequest();
+    var url = "http://192.169.1.13:3000/posts/drone/qt/" + id;
+
+    xmlhttp.onreadystatechange = function() {
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+            var myArr = JSON.parse(xmlhttp.responseText);
+            addPoint = myArr;
+
+            if(( Math.abs(data[0]['lat'] - addPoint[0]['lat']) < 0.0001 ) && ( Math.abs(data[0]['lon'] - addPoint[0]['lon']) < 0.0001)){
+
+                //pass
+
+            }else{
+                var location = [['drone',addPoint[0]['lat'],addPoint[0]['lon']]];
+               addMarker(location,map);
+           }
+
+        }
+    };
+
+    xmlhttp.open("GET", url, true);
+    xmlhttp.send();
+
+}
+
+function setMarkers(locations, map) {
+
+    for(var i=0; i < locations.length; i++){
+
+                var compa = locations[i];
+
+                if(i == 0) {
+                    var string = '<b>-drone-</b></br><b>latitude: </b>'+compa[1]+'<br> <b>longitude: </b>'+compa[2];
+                    var icon = 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+                    locinfo.sltLocationChanged(parseFloat(compa[1]), parseFloat(compa[2]),0);
+                }
+
+                else if(i == 1){
+                    var string = '<b>-emergency-</b></br><b>latitude: </b>'+compa[1]+'<br> <b>longitude: </b>'+compa[2];
+                    var icon = 'http://maps.google.com/mapfiles/ms/icons/red-dot.png';
+                   locinfo.sltLocationChanged(parseFloat(compa[1]), parseFloat(compa[2]),1);
+                }
+
+                var myLatLng = new google.maps.LatLng(parseFloat(compa[1]), parseFloat(compa[2]));
+
+                var marker = new google.maps.Marker({
+                        position: myLatLng,
+                        map: map,
+                        icon: icon,
+                        title : string,
+                        zIndex : compa[3]
+                });
+
+                var infowindow = new google.maps.InfoWindow();
+
+                if(i == 1){ // gps만 먼저
+                    infowindow.setContent(string);
+                    infowindow.open(map,marker);
+                }
+
+                google.maps.event.addListener(marker,'click', (function(marker,string,infowindow){
+                    return function() {
+                        infowindow.setContent(string);
+                        infowindow.open(map,marker);
+                    };
+                })(marker,string,infowindow));
+    }
+
+}
+
+function addMarker(location, map){
+
+    var compa = location[0];
+    var string = '<b>-drone-</b></br><b>latitude: </b>'+compa[1]+'<br> <b>longitude: </b>'+compa[2];
+
+    var icon = 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png';
+
+    var myLatLng = new google.maps.LatLng(parseFloat(compa[1]), parseFloat(compa[2]));
+
+    var marker = new google.maps.Marker({
+            position: myLatLng,
+            map: map,
+            icon: icon,
+            title : string,
+            zIndex : compa[3]
+    });
+
+}
+
+
+    </script>
+    <script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCaOF6CBwv11EhPcAvFwCoyrXBokMytg34&callback=loadingFunction"
+        async defer></script>
+  </body>
+</html>

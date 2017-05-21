@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Map</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script>
+
+var m_Add = null;
+var str = null;
+//전역 변수
+
+document.addEventListener("DOMContentLoaded", function () {
+
+       new QWebChannel(qt.webChannelTransport, function (channel) {
+            m_Add = channel.objects.m_Add;
+            m_Add.SayHello("HtmlClient");
+
+            m_Add.GetAddInfo.connect(function(Addinfo){
+                str = Addinfo;
+                post_to_url(str);
+            });
+       });
+
+});
+
+function post_to_url(params) {
+
+    alert(params);
+    var i = 0;
+
+    var method = "post";
+
+    var form = document.createElement("form");
+    form.setAttribute("method", method);
+    form.setAttribute("action", "http://192.169.1.13:3000/posts/");
+
+    var names = ["name","lat","lon","address"];
+    var values = params.split('-');
+
+
+    while(i < 4){
+      var hiddenField = document.createElement("input");
+      hiddenField.setAttribute("type", "hidden");
+      hiddenField.setAttribute("name", names[i]);
+      hiddenField.setAttribute("value", params[i]);
+      form.appendChild(hiddenField);
+      i++;
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+}
+
+
+    </script>
+  </body>
+</html>

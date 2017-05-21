@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Map</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script>
+
+var locinfo = null;
+//전역 변수
+var map;
+var myLatlng;
+var data;
+var addPoint;
+
+
+document.addEventListener("DOMContentLoaded", function () {
+
+       new QWebChannel(qt.webChannelTransport, function (channel) {
+            m_List = channel.objects.m_List;
+       });
+
+       loadingFunction();
+
+});
+
+function loadingFunction(){
+
+
+var xmlhttp = new XMLHttpRequest();
+var url = "http://192.169.1.13:3000/posts";
+
+xmlhttp.onreadystatechange = function() {
+if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+    var myArr = JSON.parse(xmlhttp.responseText);
+    data = myArr['data'];
+   //alert(data);
+    m_List.AddWid(JSON.stringify(myArr));
+}
+};
+
+xmlhttp.open("GET", url, true);
+xmlhttp.send();
+
+
+}
+
+
+    </script>
+  </body>
+</html>
